@@ -66,6 +66,8 @@ class Navigation {
   void Run();
   // Used to set the next target pose.
   void SetNavGoal(const Eigen::Vector2f& loc, float angle);
+  void ObstacleAvoidance();
+  void OneDTOC(PathOption p, Eigen::Vector2f stg);
 
  private:
 
@@ -100,6 +102,25 @@ class Navigation {
   float nav_goal_angle_;
   // Map of the environment.
   vector_map::VectorMap map_;
+
+
+  // Car parameters
+  const float ROBOT_WIDTH_;
+  const float ROBOT_LENGTH_;
+  const float MAX_CLEARANCE_;
+  const float WHEEL_BASE_;
+  const float MAX_CURVATURE_;
+  const float MAX_ACCEL_;
+  const float MAX_DEACCL_;
+  const float MAX_SHORT_TERM_GOAL_;
+  const float STOPPING_DISTANCE_;
+  const float MAX_SPEED_;
+  const float DELTA_T_;
+  const float SYSTEM_LATENCY_;
+  const float OBSTACLE_MARGIN_;
+
+
+  PathOption GetFreePathLength(PathOption p, Eigen::Vector2f stg);
 };
 
 }  // namespace navigation

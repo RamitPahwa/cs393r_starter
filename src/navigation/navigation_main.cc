@@ -76,26 +76,27 @@ bool run_ = true;
 sensor_msgs::LaserScan last_laser_msg_;
 Navigation* navigation_ = nullptr;
 
-void LaserCallback(const sensor_msgs::LaserScan& msg) {
-  if (FLAGS_v > 0) {
-    printf("Laser t=%f, dt=%f\n",
-           msg.header.stamp.toSec(),
-           GetWallTime() - msg.header.stamp.toSec());
+void LaserCallback(const sensor_msgs::LaserScan &msg)
+{
+  const Vector2f laser_location(0.2, 0);
+  float prev_dtheta_ = 0;
+  float prev_angle_min_ = 0;
+  float prev_num_rays_ = 0;
+  vector<Vector2f> point_cloud_;
+  if (prev_angle_min_ != msg.angle_min || prev_dtheta_ != msg.angle_increment || prev_num_rays_ != msg.ranges.size())
+  {
+    prev_angle_min_ = msg.angle_min;
+    prev_dtheta_ = msg.angle_increment;
+    prev_num_rays_ = msg.ranges.size();
+    point_cloud_.resize(prev_num_rays_);
+    for (size_t i = 0; i < prev_num_rays_; ++i)
+    {
+      float angle = prev_angle_min_ + i * prev_dtheta_;
+      float dist = (msg.ranges[i] > msg.range_min && msg.ranges[i] < msg.range_max) ? msg.ranges[i] : msg.range_max;
+      point_cloud_[i] = dist * Vector2f(cos(angle), sin(angle)) + laser_location;
+    }
   }
-  // Location of the laser on the robot. Assumes the laser is forward-facing.
-  const Vector2f kLaserLoc(0.2, 0);
-
-  static vector<Vector2f> point_cloud_;
-  // TODO Convert the LaserScan to a point cloud
-  // The LaserScan parameters are accessible as follows:
-  // msg.angle_increment // Angular increment between subsequent rays
-  // msg.angle_max // Angle of the first ray
-  // msg.angle_min // Angle of the last ray
-  // msg.range_max // Maximum observable range
-  // msg.range_min // Minimum observable range
-  // msg.ranges[i] // The range of the i'th ray
   navigation_->ObservePointCloud(point_cloud_, msg.header.stamp.toSec());
-  last_laser_msg_ = msg;
 }
 
 void OdometryCallback(const nav_msgs::Odometry& msg) {
