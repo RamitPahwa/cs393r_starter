@@ -102,6 +102,31 @@ class ParticleFilter {
   Eigen::Vector2f prev_odom_loc_;
   float prev_odom_angle_;
   bool odom_initialized_;
+
+  // Last loc and angle values used in update step,
+  Eigen::Vector2f last_update_loc_;
+  float last_update_angle_;
+
+  // Resampling skips count
+  int resampling_skipped_;
+
+
+  const float NUM_PARTICLES_;
+  const float INIT_ANGLE_STDDEV_;
+  const float INIT_LOC_STDDEV_;
+  const float K1_;
+  const float K2_;
+  const float K3_;
+  const float K4_;
+  const float LASER_LOC_;
+  const float LASER_SAMPLE_FREQ_;
+  const float GAMMA_;
+  const float LASER_STDDEV_;
+  const float LASER_SHORT_CUTOFF_;
+  const float LASER_LONG_CUTOFF_;
+  const float RESAMPLE_INTERVAL_;
+  const float MIN_ANGLE_CHANGE_;
+  const float MIN_DIST_CHANGE_;
 };
 }  // namespace slam
 
