@@ -42,6 +42,7 @@
 #include "visualization_msgs/MarkerArray.h"
 #include "nav_msgs/Odometry.h"
 #include "ros/ros.h"
+#include "ros/package.h"
 #include "shared/math/math_util.h"
 #include "shared/util/timer.h"
 #include "shared/ros/ros_helpers.h"
@@ -70,11 +71,17 @@ DEFINE_string(loc_topic, "localization", "Name of ROS topic for localization");
 DEFINE_string(init_topic,
               "initialpose",
               "Name of ROS topic for initialization");
-DEFINE_string(map, "GDC1", "Name of vector map file");
+// DEFINE_string(map, "GDC1", "Name of vector map file");
+string map = "GDC1";
 
 bool run_ = true;
 sensor_msgs::LaserScan last_laser_msg_;
 Navigation* navigation_ = nullptr;
+
+string GetMapFileFromName(const string& map) {
+  string maps_dir_ = ros::package::getPath("amrl_maps");
+  return maps_dir_ + "/" + map + "/" + map + ".vectormap.txt";
+}
 
 void LaserCallback(const sensor_msgs::LaserScan &msg)
 {
@@ -118,6 +125,18 @@ void GoToCallback(const geometry_msgs::PoseStamped& msg) {
   navigation_->SetNavGoal(loc, angle);
 }
 
+
+void InitCallback(const amrl_msgs::Localization2DMsg& msg) {
+  const Vector2f init_loc(msg.pose.x, msg.pose.y);
+  const float init_angle = msg.pose.theta;
+  map = msg.map;
+  printf("Initialize: %s (%f,%f) %f\u00b0\n",
+         map.c_str(),
+         init_loc.x(),
+         init_loc.y(),
+         RadToDeg(init_angle));
+}
+
 void SignalHandler(int) {
   if (!run_) {
     printf("Force Exit.\n");
@@ -144,11 +163,14 @@ int main(int argc, char** argv) {
   // Initialize ROS.
   ros::init(argc, argv, "navigation", ros::init_options::NoSigintHandler);
   ros::NodeHandle n;
-  navigation_ = new Navigation(FLAGS_map, &n);
+  navigation_ = new Navigation(map, &n);
 
   ros::Subscriber string_sub = 
       n.subscribe("string_topic", 1, &StringCallback);
-
+  ros::Subscriber initial_pose_sub = n.subscribe(
+      FLAGS_init_topic.c_str(),
+      1,
+      InitCallback);
   ros::Subscriber velocity_sub =
       n.subscribe(FLAGS_odom_topic, 1, &OdometryCallback);
   ros::Subscriber localization_sub =
