@@ -22,8 +22,11 @@
 #include <vector>
 
 #include "eigen3/Eigen/Dense"
-
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
 #include "vector_map/vector_map.h"
+#include "simple_queue.h"
 
 #ifndef NAVIGATION_H
 #define NAVIGATION_H
@@ -33,6 +36,43 @@ namespace ros {
 }  // namespace ros
 
 namespace navigation {
+
+struct Priority{
+  static constexpr float Epsilon = 1e-6;
+  float cost;
+  float huer;
+
+  Priority() {}
+
+  Priority(float cost, float huer) : cost(cost), huer(huer) {}
+
+  bool operator<(const Priority &other) const
+  {
+    float f = cost + huer;
+    float f_other = other.cost + other.huer;
+    if (f > f_other + Epsilon)
+      return true;
+    if (f < f_other - Epsilon)
+      return false;
+    return (cost < other.cost);
+  }
+
+  // bool operator=(const Priority &other) const
+  // {
+  //   return (other.cost == cost ) && (other.huer == huer);
+  // }
+
+  bool operator>(const Priority &other) const
+  {
+    float f = cost + huer;
+    float f_other = other.cost + other.huer;
+    if (f < f_other - Epsilon)
+      return true;
+    if (f > f_other + Epsilon)
+      return false;
+    return (cost > other.cost);
+  }
+};
 
 struct PathOption {
   float curvature;
@@ -66,8 +106,29 @@ class Navigation {
   void Run();
   // Used to set the next target pose.
   void SetNavGoal(const Eigen::Vector2f& loc, float angle);
+  bool PlanStillValid();
+  void Plan();
+  Eigen::Vector2f GetCarrot();  
   void ObstacleAvoidance();
   void OneDTOC(PathOption p, Eigen::Vector2f stg);
+
+  Eigen::Vector2f getStatefromKey(int key);
+
+  // Function for A*
+  bool AStarPlanner(Eigen::Vector2f start_loc, Eigen::Vector2f end_loc, std::vector<Eigen::Vector2f> *path);
+
+  int getKeyFromState(Eigen::Vector2f s);
+
+  float getHeuristic( Eigen::Vector2f s1,  Eigen::Vector2f s2);
+  float getEdgeCost( Eigen::Vector2f s1,  Eigen::Vector2f s2);
+  void getNeighbors(int s_key, std::vector<int>* neighbors);
+  bool checkCollision(int s_key, int s1_key);
+  int boundLocation(Eigen::Vector2i location, bool isX);
+  void populateNeighbors(int x, int y, int MAP_WIDTH_,int  MAP_HEIGHT_, int s_key, std::vector<int>* neighbors );
+  void SetOffset(Eigen::Vector2f loc);
+  // bool PlanStillValid();
+
+  
 
  private:
 
@@ -104,6 +165,8 @@ class Navigation {
   vector_map::VectorMap map_;
 
 
+  Eigen::Vector2f short_term_goal;
+
   // Car parameters
   const float ROBOT_WIDTH_;
   const float ROBOT_LENGTH_;
@@ -119,7 +182,20 @@ class Navigation {
   const float SYSTEM_LATENCY_;
   const float OBSTACLE_MARGIN_;
 
+  // Navigation parameters
+  const float RESOLUTION_;
+  const uint64_t SIZE_X_;
+  const uint64_t SIZE_Y_;
+  const float DIAGONAL_LENGTH_;
+  Eigen::Vector2f NAV_OFFSET_;
+  const float NAV_MARGIN_;
+  const Eigen::Vector2f ORIGIN_;
+  float NAV_TOLERANCE_;
+  const int MAX_EDGE_EXPANSIONS_;
+  const bool VISUALIZE_;
+  const float CARROT_DIST_SQ_;
 
+  std::vector<Eigen::Vector2f> plan_path_;
   PathOption GetFreePathLength(PathOption p, Eigen::Vector2f stg);
 };
 
